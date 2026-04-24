@@ -1,0 +1,24 @@
+# This project uses npm for dependency management.
+# The primary dependency file is package.json.
+# This requirements.txt is generated for informational purposes.
+
+# Core Dependencies
+react >= 19.2.5
+react-dom >= 19.2.5
+
+# Database & Persistence
+dexie >= 4.4.2
+dexie-react-hooks >= 4.4.0
+
+# Editor & Markdown
+@uiw/react-codemirror >= 4.25.9
+@codemirror/lang-markdown >= 6.5.0
+@replit/codemirror-vim >= 6.3.0
+react-markdown >= 10.1.0
+remark-gfm >= 4.0.1
+
+# UI Components & Icons
+lucide-react >= 1.9.0
+
+# Build Tools
+vite >= 8.0.10
