@@ -122,7 +122,8 @@ function App() {
                  <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem', paddingBottom: '0.5rem' }}>
                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                      <label style={{ margin: 0, width: '60px' }}>文件種類</label>
-                     <select value={doc.type} onChange={e => handleUpdateDoc({ type: e.target.value })} style={{ width: '120px' }}>
+                     <select value={doc.type} onChange={e => handleUpdateDoc({ type: e.target.value })} style={{ width: '130px' }}>
+                       <option value="info">比賽基本資料</option>
                        <option value="note">筆記</option>
                        <option value="script">講稿</option>
                        <option value="data">資料</option>

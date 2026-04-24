@@ -6,7 +6,7 @@ import { vim } from '@replit/codemirror-vim';
 import { EditorView } from '@codemirror/view';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Edit2, Eye, LayoutTemplate, Keyboard } from 'lucide-react';
+import { Edit2, Eye, LayoutTemplate, Keyboard, Eraser } from 'lucide-react';
 
 export default function DataEditor({ value, onChange, height = '400px' }) {
   const [mode, setMode] = useState('split'); // 'edit', 'preview', 'split'
@@ -18,6 +18,14 @@ export default function DataEditor({ value, onChange, height = '400px' }) {
     const count = (value || '').trim().split(/\s+/).filter(word => word.length > 0).length;
     setWordCount(count);
   }, [value]);
+
+  const stripPunctuation = () => {
+    if (!value) return;
+    if (confirm('確定要移除所有標點符號嗎？(此操作會覆蓋當前內容)')) {
+      const stripped = value.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()！？。，、；：「」『』（）—…《》〈〉"']/g, " ");
+      onChange(stripped);
+    }
+  };
 
   const extensions = [
     markdown({ base: markdownLanguage, codeLanguages: languages }),
@@ -68,6 +76,14 @@ export default function DataEditor({ value, onChange, height = '400px' }) {
             title="開啟/關閉 Vim 模式"
           >
             <Keyboard size={16} /> <span style={{fontSize: '0.8rem'}}>Vim</span>
+          </button>
+          <button
+            type="button"
+            className="danger"
+            onClick={stripPunctuation}
+            title="去除所有標點符號"
+          >
+            <Eraser size={16} /> <span style={{fontSize: '0.8rem'}}>去標點</span>
           </button>
         </div>
       </div>
