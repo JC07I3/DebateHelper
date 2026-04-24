@@ -30,6 +30,20 @@ export default function Sidebar({ currentContestId, setCurrentContestId, activeD
     setNewContestName('');
   };
 
+  const handleDeleteContest = async () => {
+    if (!currentContestId) return;
+    const contest = contests.find(c => c.id === currentContestId);
+    if (confirm(`確定要刪除「${contest?.name}」嗎？這將會刪除該盃賽下所有的文件與標籤，且無法復原。`)) {
+      await db.transaction('rw', db.contests, db.documents, db.tags, async () => {
+        await db.documents.where('contestId').equals(currentContestId).delete();
+        await db.tags.where('contestId').equals(currentContestId).delete();
+        await db.contests.delete(currentContestId);
+      });
+      setCurrentContestId(null);
+      setActiveDocId(null);
+    }
+  };
+
   const handleCreateDocument = async (type) => {
     if (!currentContestId) return;
     const newDocId = await db.documents.add({
@@ -82,16 +96,29 @@ export default function Sidebar({ currentContestId, setCurrentContestId, activeD
         <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', color: 'var(--accent-color)', fontSize: '1.2rem' }}>
           <Folder size={18} /> 盃賽工作區
         </h2>
-        <select 
-          value={currentContestId || ''} 
-          onChange={(e) => setCurrentContestId(Number(e.target.value) || null)}
-          style={{ marginBottom: '1rem' }}
-        >
-          <option value="">-- 選擇盃賽 --</option>
-          {contests?.map(c => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
-        </select>
+        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+          <select 
+            value={currentContestId || ''} 
+            onChange={(e) => setCurrentContestId(Number(e.target.value) || null)}
+            style={{ flex: 1 }}
+          >
+            <option value="">-- 選擇盃賽 --</option>
+            {contests?.map(c => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+          {currentContestId && (
+            <button 
+              type="button" 
+              className="danger" 
+              onClick={handleDeleteContest}
+              title="刪除盃賽"
+              style={{ padding: '0 0.5rem' }}
+            >
+              <Trash2 size={16} />
+            </button>
+          )}
+        </div>
         
         <form onSubmit={handleAddContest} style={{ display: 'flex', gap: '0.5rem' }}>
           <input 
