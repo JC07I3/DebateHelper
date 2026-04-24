@@ -68,10 +68,10 @@ export default function Sidebar({ currentContestId, setCurrentContestId, activeD
   };
 
   const categories = [
-    { type: 'info', label: 'ℹ️ 比賽基本資料', icon: FileText },
-    { type: 'note', label: '📒 筆記', icon: FileText },
-    { type: 'script', label: '📖 講稿', icon: File },
-    { type: 'data', label: '🔗 參考資料', icon: LinkIcon }
+    { type: 'info', label: '比賽基本資料', icon: FileText },
+    { type: 'note', label: '筆記', icon: FileText },
+    { type: 'script', label: '講稿', icon: File },
+    { type: 'data', label: '參考資料', icon: LinkIcon }
   ];
 
   return (
