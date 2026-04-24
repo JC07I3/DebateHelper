@@ -125,7 +125,7 @@ function App() {
                      <select value={doc.type} onChange={e => handleUpdateDoc({ type: e.target.value })} style={{ width: '130px' }}>
                        <option value="info">比賽基本資料</option>
                        <option value="note">筆記</option>
-                       <option value="script">講稿</option>
+                       <option value="script">稿子</option>
                        <option value="data">資料</option>
                      </select>
                      
