@@ -47,8 +47,17 @@ export default function Sidebar({ currentContestId, setCurrentContestId, activeD
 
   const handleCreateDocument = async (type) => {
     if (!currentContestId) return;
+    
+    const defaultName = type === 'note' ? '新筆記' : type === 'script' ? '新稿子' : type === 'data' ? '新資料' : '未命名文件';
+    let title = prompt(`請輸入${defaultName}名稱：`, defaultName);
+    
+    // If user clicks Cancel on prompt, title is null. Do not create.
+    if (title === null) return;
+    
+    title = title.trim() || defaultName;
+
     const newDocId = await db.documents.add({
-      title: '未命名文件',
+      title,
       type,
       content: '',
       side: '中性',

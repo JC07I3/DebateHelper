@@ -45,6 +45,8 @@ function App() {
     [currentContestId]
   );
 
+
+
   const handleUpdateDoc = (updates) => {
     if (!activeDocId) return;
     setDoc(prevDoc => {
@@ -111,16 +113,24 @@ function App() {
                    handleUpdateDoc({ title: val });
                  }}
                  placeholder="無標題文件"
+                 className="title-input"
                  style={{ 
                    fontSize: '1.8rem', 
                    fontWeight: 'bold', 
                    background: 'transparent', 
                    border: 'none', 
+                   borderBottom: '2px dashed transparent',
                    color: 'var(--text-primary)',
                    boxShadow: 'none',
-                   padding: 0,
-                   flex: 1
+                   padding: '0.2rem 0',
+                   flex: 1,
+                   transition: 'border-color 0.2s'
                  }}
+                 onFocus={e => e.target.style.borderBottom = '2px dashed var(--accent-color)'}
+                 onBlur={e => e.target.style.borderBottom = '2px dashed transparent'}
+                 onMouseEnter={e => { if (document.activeElement !== e.target) e.target.style.borderBottom = '2px dashed rgba(255,255,255,0.2)'; }}
+                 onMouseLeave={e => { if (document.activeElement !== e.target) e.target.style.borderBottom = '2px dashed transparent'; }}
+                 title="點擊以重新命名"
                />
                <button type="button" className="danger" onClick={handleDelete} title="刪除文件">
                  <Trash2 size={18} />
