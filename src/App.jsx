@@ -26,15 +26,34 @@ function App() {
     loadDoc();
   }, [activeDocId]);
 
+  const [localTitle, setLocalTitle] = useState('');
+  const [localUrl, setLocalUrl] = useState('');
+
+  // Sync local title and url when document selection changes
+  useEffect(() => {
+    if (doc) {
+      setLocalTitle(doc.title || '');
+      setLocalUrl(doc.url || '');
+    } else {
+      setLocalTitle('');
+      setLocalUrl('');
+    }
+  }, [doc?.id]);
+
   const availableTags = useLiveQuery(
-    () => currentContestId ? db.tags.where('contestId').equals(currentContestId).toArray() : []
+    () => currentContestId ? db.tags.where('contestId').equals(currentContestId).toArray() : [],
+    [currentContestId]
   );
 
-  const handleUpdateDoc = async (updates) => {
-    if (!doc || !activeDocId) return;
-    const newDoc = { ...doc, ...updates, updatedAt: new Date().toISOString() };
-    setDoc(newDoc);
-    await db.documents.update(activeDocId, newDoc);
+  const handleUpdateDoc = (updates) => {
+    if (!activeDocId) return;
+    setDoc(prevDoc => {
+      if (!prevDoc) return prevDoc;
+      const newDoc = { ...prevDoc, ...updates, id: activeDocId, updatedAt: new Date().toISOString() };
+      // Save to DB in background
+      db.documents.put(newDoc).catch(e => console.error('DB Update Error:', e));
+      return newDoc;
+    });
   };
 
   const handleDelete = async () => {
@@ -85,8 +104,12 @@ function App() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                <input 
                  type="text" 
-                 value={doc.title}
-                 onChange={e => handleUpdateDoc({ title: e.target.value })}
+                 value={localTitle}
+                 onChange={e => {
+                   const val = e.target.value;
+                   setLocalTitle(val);
+                   handleUpdateDoc({ title: val });
+                 }}
                  placeholder="無標題文件"
                  style={{ 
                    fontSize: '1.8rem', 
@@ -111,8 +134,12 @@ function App() {
                 onClick={() => setShowMetadata(!showMetadata)}
               >
                 <div style={{ display: 'flex', gap: '1rem' }}>
-                  <span>持方：{doc.side}</span>
-                  <span>|</span>
+                  {doc.type !== 'info' && (
+                    <>
+                      <span>持方：{doc.side}</span>
+                      <span>|</span>
+                    </>
+                  )}
                   <span>最後更新：{new Date(doc.updatedAt).toLocaleString()}</span>
                 </div>
                 {showMetadata ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
@@ -129,22 +156,30 @@ function App() {
                        <option value="data">資料</option>
                      </select>
                      
-                     <label style={{ margin: 0, marginLeft: '1rem' }}>持方</label>
-                     <select value={doc.side} onChange={e => handleUpdateDoc({ side: e.target.value })} style={{ width: '120px' }}>
-                       <option value="正方">正方</option>
-                       <option value="反方">反方</option>
-                       <option value="中性">中性</option>
-                     </select>
+                     {doc.type !== 'info' && (
+                       <>
+                         <label style={{ margin: 0, marginLeft: '1rem' }}>持方</label>
+                         <select value={doc.side} onChange={e => handleUpdateDoc({ side: e.target.value })} style={{ width: '120px' }}>
+                           <option value="正方">正方</option>
+                           <option value="反方">反方</option>
+                           <option value="中性">中性</option>
+                         </select>
+                       </>
+                     )}
                    </div>
 
                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                      <label style={{ margin: 0, width: '60px' }}>文件連結</label>
-                     <input 
-                       type="url" 
-                       value={doc.url} 
-                       onChange={e => handleUpdateDoc({ url: e.target.value })} 
-                       placeholder="https://..."
-                     />
+                      <input 
+                        type="url" 
+                        value={localUrl} 
+                        onChange={e => {
+                          const val = e.target.value;
+                          setLocalUrl(val);
+                          handleUpdateDoc({ url: val });
+                        }} 
+                        placeholder="https://..."
+                      />
                    </div>
 
                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>

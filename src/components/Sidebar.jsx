@@ -6,7 +6,8 @@ import { Plus, Trash2, Folder, Tag, Download, Upload, FileText, File, Link as Li
 export default function Sidebar({ currentContestId, setCurrentContestId, activeDocId, setActiveDocId }) {
   const contests = useLiveQuery(() => db.contests.toArray());
   const documents = useLiveQuery(
-    () => currentContestId ? db.documents.where('contestId').equals(currentContestId).toArray() : []
+    () => currentContestId ? db.documents.where('contestId').equals(currentContestId).toArray() : [],
+    [currentContestId]
   );
 
   const [newContestName, setNewContestName] = useState('');
