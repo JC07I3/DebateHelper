@@ -3,19 +3,24 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db, exportData, importData } from '../db';
 import { Plus, Trash2, Folder, Tag, Download, Upload, FileText, File, Link as LinkIcon, ChevronRight, ChevronDown } from 'lucide-react';
 
-export default function Sidebar({ currentContestId, setCurrentContestId, activeDocId, setActiveDocId }) {
+export default function Sidebar({ currentContestId, setCurrentContestId, activeDocId, setActiveDocId, isSidebarOpen }) {
   const contests = useLiveQuery(() => db.contests.toArray());
   const documents = useLiveQuery(
     () => currentContestId ? db.documents.where('contestId').equals(currentContestId).toArray() : [],
     [currentContestId]
   );
 
+  const folders = useLiveQuery(
+    () => currentContestId ? db.folders.where('contestId').equals(currentContestId).toArray() : [],
+    [currentContestId]
+  );
+
   const [newContestName, setNewContestName] = useState('');
   
-  // Collapse states for categories
-  const [openCategories, setOpenCategories] = useState({ note: true, script: true, data: true });
+  // Collapse states for folders
+  const [openFolders, setOpenFolders] = useState({});
 
-  const toggleCategory = (type) => setOpenCategories(prev => ({ ...prev, [type]: !prev[type] }));
+  const toggleFolder = (folderId) => setOpenFolders(prev => ({ ...prev, [folderId]: !prev[folderId] }));
 
   const handleAddContest = async (e) => {
     e.preventDefault();
@@ -45,20 +50,43 @@ export default function Sidebar({ currentContestId, setCurrentContestId, activeD
     }
   };
 
-  const handleCreateDocument = async (type) => {
+  const handleCreateFolder = async () => {
+    if (!currentContestId) return;
+    const name = prompt('請輸入新資料夾名稱：');
+    if (!name || !name.trim()) return;
+    await db.folders.add({ name: name.trim(), contestId: currentContestId });
+    // Default open newly created folder
+    const latestFolders = await db.folders.where('contestId').equals(currentContestId).toArray();
+    const newFolder = latestFolders.find(f => f.name === name.trim());
+    if (newFolder) {
+      setOpenFolders(prev => ({ ...prev, [newFolder.id]: true }));
+    }
+  };
+
+  const handleDeleteFolder = async (e, folderId, folderName) => {
+    e.stopPropagation();
+    if (confirm(`確定要刪除「${folderName}」資料夾嗎？裡面的所有文件將會被一併刪除且無法復原！`)) {
+      await db.transaction('rw', db.folders, db.documents, async () => {
+        await db.documents.where({ folderId }).delete();
+        await db.folders.delete(folderId);
+      });
+      // Optionally could clear activeDocId if it was in the deleted folder
+    }
+  };
+
+  const handleCreateDocument = async (folderId) => {
     if (!currentContestId) return;
     
-    const defaultName = type === 'note' ? '新筆記' : type === 'script' ? '新稿子' : type === 'data' ? '新資料' : '未命名文件';
-    let title = prompt(`請輸入${defaultName}名稱：`, defaultName);
+    let title = prompt(`請輸入新文件名稱：`, '未命名文件');
     
     // If user clicks Cancel on prompt, title is null. Do not create.
     if (title === null) return;
     
-    title = title.trim() || defaultName;
+    title = title.trim() || '未命名文件';
 
     const newDocId = await db.documents.add({
       title,
-      type,
+      folderId,
       content: '',
       side: '中性',
       tags: '[]',
@@ -68,7 +96,7 @@ export default function Sidebar({ currentContestId, setCurrentContestId, activeD
       updatedAt: new Date().toISOString()
     });
     setActiveDocId(newDocId);
-    setOpenCategories(prev => ({ ...prev, [type]: true }));
+    setOpenFolders(prev => ({ ...prev, [folderId]: true }));
   };
 
   const handleImportClick = () => {
@@ -91,15 +119,18 @@ export default function Sidebar({ currentContestId, setCurrentContestId, activeD
     input.click();
   };
 
-  const categories = [
-    { type: 'info', label: '比賽基本資料', icon: FileText },
-    { type: 'note', label: '筆記', icon: FileText },
-    { type: 'script', label: '稿子', icon: File },
-    { type: 'data', label: '資料', icon: LinkIcon }
-  ];
-
   return (
-    <div className="glass-panel" style={{ width: '280px', flexShrink: 0, display: 'flex', flexDirection: 'column', height: '100%', borderRight: '1px solid var(--panel-border)'}}>
+    <div className="glass-panel sidebar-container" style={{ 
+      width: isSidebarOpen ? '280px' : '0px', 
+      opacity: isSidebarOpen ? 1 : 0,
+      flexShrink: 0, 
+      display: 'flex', 
+      flexDirection: 'column', 
+      height: '100%', 
+      borderRight: isSidebarOpen ? '1px solid var(--panel-border)' : 'none',
+      transition: 'all 0.3s ease',
+      overflow: 'hidden'
+    }}>
       
       {/* Contest Selector */}
       <div style={{ padding: '1rem', borderBottom: '1px solid var(--panel-border)' }}>
@@ -144,33 +175,43 @@ export default function Sidebar({ currentContestId, setCurrentContestId, activeD
       {/* Document Tree */}
       {currentContestId ? (
         <div style={{ flex: 1, overflowY: 'auto', padding: '1rem 0' }}>
-          {categories.map(cat => {
-            const docsInCat = documents?.filter(d => d.type === cat.type) || [];
-            const isOpen = openCategories[cat.type];
+          {folders?.map(folder => {
+            const docsInFolder = documents?.filter(d => d.folderId === folder.id) || [];
+            const isOpen = openFolders[folder.id];
 
             return (
-              <div key={cat.type} style={{ marginBottom: '0.5rem' }}>
+              <div key={folder.id} style={{ marginBottom: '0.5rem' }}>
                 <div 
                   style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 1rem', cursor: 'pointer', color: 'var(--text-secondary)' }}
-                  onClick={() => toggleCategory(cat.type)}
+                  onClick={() => toggleFolder(folder.id)}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600, fontSize: '0.9rem' }}>
                     {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                    {cat.label}
+                    {folder.name}
                   </div>
-                  <button 
-                    type="button" 
-                    onClick={(e) => { e.stopPropagation(); handleCreateDocument(cat.type); }}
-                    style={{ background: 'transparent', padding: '0.25rem', color: 'inherit' }}
-                    title={`新增${cat.label}`}
-                  >
-                    <Plus size={14} />
-                  </button>
+                  <div style={{ display: 'flex', gap: '0.25rem' }}>
+                    <button 
+                      type="button" 
+                      onClick={(e) => handleDeleteFolder(e, folder.id, folder.name)}
+                      style={{ background: 'transparent', padding: '0.25rem', color: 'inherit', opacity: 0.6 }}
+                      title={`刪除資料夾`}
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                    <button 
+                      type="button" 
+                      onClick={(e) => { e.stopPropagation(); handleCreateDocument(folder.id); }}
+                      style={{ background: 'transparent', padding: '0.25rem', color: 'inherit' }}
+                      title={`新增文件`}
+                    >
+                      <Plus size={14} />
+                    </button>
+                  </div>
                 </div>
                 
                 {isOpen && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', padding: '0 0.5rem' }}>
-                    {docsInCat.map(doc => (
+                    {docsInFolder.map(doc => (
                       <div 
                         key={doc.id}
                         onClick={() => setActiveDocId(doc.id)}
@@ -190,7 +231,7 @@ export default function Sidebar({ currentContestId, setCurrentContestId, activeD
                         {doc.title || '未命名'}
                       </div>
                     ))}
-                    {docsInCat.length === 0 && (
+                    {docsInFolder.length === 0 && (
                       <div style={{ padding: '0.5rem 2rem', fontSize: '0.8rem', color: 'rgba(255,255,255,0.2)' }}>
                         無文件
                       </div>
@@ -200,6 +241,12 @@ export default function Sidebar({ currentContestId, setCurrentContestId, activeD
               </div>
             );
           })}
+          
+          <div style={{ padding: '0.5rem 1rem' }}>
+            <button onClick={handleCreateFolder} className="secondary" style={{ width: '100%', display: 'flex', justifyContent: 'center', gap: '0.5rem', fontSize: '0.9rem', padding: '0.4rem' }}>
+              <Plus size={14} /> 新增資料夾
+            </button>
+          </div>
         </div>
       ) : (
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)', fontSize: '0.9rem', textAlign: 'center', padding: '2rem' }}>

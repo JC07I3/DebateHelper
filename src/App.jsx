@@ -3,7 +3,7 @@ import Sidebar from './components/Sidebar';
 import DataEditor from './components/DataEditor';
 import { db } from './db';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { ChevronDown, ChevronUp, Trash2, Save } from 'lucide-react';
+import { ChevronDown, ChevronUp, Trash2, Save, Menu } from 'lucide-react';
 
 function App() {
   const [currentContestId, setCurrentContestId] = useState(null);
@@ -12,6 +12,7 @@ function App() {
   // Editor State
   const [doc, setDoc] = useState(null);
   const [showMetadata, setShowMetadata] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   // Sync active document
   useEffect(() => {
@@ -42,6 +43,11 @@ function App() {
 
   const availableTags = useLiveQuery(
     () => currentContestId ? db.tags.where('contestId').equals(currentContestId).toArray() : [],
+    [currentContestId]
+  );
+
+  const folders = useLiveQuery(
+    () => currentContestId ? db.folders.where('contestId').equals(currentContestId).toArray() : [],
     [currentContestId]
   );
 
@@ -97,13 +103,22 @@ function App() {
         setCurrentContestId={setCurrentContestId} 
         activeDocId={activeDocId}
         setActiveDocId={setActiveDocId}
+        isSidebarOpen={isSidebarOpen}
       />
       
       <main className="main-content" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
         {doc ? (
           <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '1rem', gap: '1rem' }}>
             {/* Top Toolbar */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
+               <button 
+                 type="button" 
+                 onClick={() => setIsSidebarOpen(!isSidebarOpen)} 
+                 style={{ background: 'transparent', padding: '0.5rem', color: 'var(--text-secondary)', cursor: 'pointer' }}
+                 title="切換側邊欄"
+               >
+                 <Menu size={24} />
+               </button>
                <input 
                  type="text" 
                  value={localTitle}
@@ -144,12 +159,8 @@ function App() {
                 onClick={() => setShowMetadata(!showMetadata)}
               >
                 <div style={{ display: 'flex', gap: '1rem' }}>
-                  {doc.type !== 'info' && (
-                    <>
-                      <span>持方：{doc.side}</span>
-                      <span>|</span>
-                    </>
-                  )}
+                  <span>持方：{doc.side}</span>
+                  <span>|</span>
                   <span>最後更新：{new Date(doc.updatedAt).toLocaleString()}</span>
                 </div>
                 {showMetadata ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
@@ -158,24 +169,17 @@ function App() {
               {showMetadata && (
                  <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem', paddingBottom: '0.5rem' }}>
                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                     <label style={{ margin: 0, width: '60px' }}>文件種類</label>
-                     <select value={doc.type} onChange={e => handleUpdateDoc({ type: e.target.value })} style={{ width: '130px' }}>
-                       <option value="info">比賽基本資料</option>
-                       <option value="note">筆記</option>
-                       <option value="script">稿子</option>
-                       <option value="data">資料</option>
+                     <label style={{ margin: 0, width: '60px' }}>資料夾</label>
+                     <select value={doc.folderId || ''} onChange={e => handleUpdateDoc({ folderId: Number(e.target.value) })} style={{ width: '130px' }}>
+                       {folders?.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                      </select>
                      
-                     {doc.type !== 'info' && (
-                       <>
-                         <label style={{ margin: 0, marginLeft: '1rem' }}>持方</label>
-                         <select value={doc.side} onChange={e => handleUpdateDoc({ side: e.target.value })} style={{ width: '120px' }}>
-                           <option value="正方">正方</option>
-                           <option value="反方">反方</option>
-                           <option value="中性">中性</option>
-                         </select>
-                       </>
-                     )}
+                     <label style={{ margin: 0, marginLeft: '1rem' }}>持方</label>
+                     <select value={doc.side} onChange={e => handleUpdateDoc({ side: e.target.value })} style={{ width: '120px' }}>
+                       <option value="正方">正方</option>
+                       <option value="反方">反方</option>
+                       <option value="中性">中性</option>
+                     </select>
                    </div>
 
                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -229,7 +233,15 @@ function App() {
             </div>
           </div>
         ) : (
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)', position: 'relative' }}>
+            <button 
+              type="button" 
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)} 
+              style={{ position: 'absolute', top: '1rem', left: '1rem', background: 'transparent', padding: '0.5rem', color: 'var(--text-secondary)', cursor: 'pointer' }}
+              title="切換側邊欄"
+            >
+              <Menu size={24} />
+            </button>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '3rem', marginBottom: '1rem', opacity: 0.2 }}>✍️</div>
               <p>從左側選擇一份文件開始編輯</p>
